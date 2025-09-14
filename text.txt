@@ -1,6 +1,9 @@
 mongodb+srv://rohitrajupatil12_db_user:rohit123@cluster10.r0ztyrl.mongodb.net/
 
 
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4YzY2ZDE4NTUxZDM2YWJkZDU0ZTVlZSIsImlhdCI6MTc1NzgzNDczMCwiZXhwIjoxNzU3ODM4MzMwfQ.l50peWimzt9qcUdKnJw7A5V1ly3ODYFd53KJ_R14jSM
+
+
 // Register new user
 // app.post("/register", async (req, res) => {
 //   try {
@@ -21,3 +24,165 @@ mongodb+srv://rohitrajupatil12_db_user:rohit123@cluster10.r0ztyrl.mongodb.net/
 //     res.status(500).json({ error: err.message });
 //   }
 // });
+
+
+
+app.post('/add-product', async (req, res) => {
+  try {
+    const { productname, productprice } = req.body;
+    const productexist = await Product.findOne({ productname })
+
+
+    if (productexist) {
+      return res.status(400).json({ message: "this product is already exist" })
+    }
+
+    const newPorduct = new Product({ productname, productprice });
+    await newPorduct.save()
+    res.status(201).json({ message: "prodsduct is added" })
+  } catch (error) {
+    res.status(500).json({ errorr: error.message })
+
+  }
+
+})
+
+
+
+
+app.delete('/delete-product/:id', async (req, res) => {
+
+  try {
+    const productname = req.params.id;
+    const deletedproudct = await Product.findOneAndDelete(productname)
+    if (!deletedproudct) {
+      return res.status(404).json({ message: "product id galat hai" })
+    }
+
+    res.json({ message: "product delete  hogaya" })
+  } catch (error) {
+    res.status(500).json({message: "code tere galt hai"})
+  }
+
+})
+
+
+
+
+
+app.put('/update-product/:id', async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const { productprice } = req.body;
+
+    // Update product by ID
+    const updatedProduct = await Product.findByIdAndUpdate(
+      productId,
+      { productprice: productprice },   // make sure field name matches schema
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ message: "Product ID is wrong" });
+    }
+
+    res.json({
+      message: "Product updated successfully",
+      product: updatedProduct
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////
+
+
+function authMiddleware(req, res, next) {
+  const token = req.headers["authorization"];
+  if (!token) return res.status(401).json({ message: "No token, access denied" });
+
+  try {
+    const decoded = jwt.verify(token.split(" ")[1], "mysecretkey");
+    req.user = decoded; // attach decoded data to request
+    next();
+  } catch (error) {
+    res.status(401).json({ message: "Invalid token" });
+  }
+}
+
+
+// Register
+app.post("/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword
+    });
+
+    await newUser.save();
+
+    res.json({ message: "User registered successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    // compare passwords
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid password" });
+    }
+
+    // create JWT token
+    const token = jwt.sign(
+      { id: user._id },         // payload
+      "mysecretkey",            // secret key (keep in .env later)
+      { expiresIn: "1h" }       // token expiry
+    );
+
+    res.json({ message: "Login successful", token });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+app.get("/profile", authMiddleware, async (req, res) => {
+  const user = await User.findById(req.user.id).select("-password"); // exclude password
+  res.json(user);
+});
