@@ -186,3 +186,16 @@ app.get("/profile", authMiddleware, async (req, res) => {
   const user = await User.findById(req.user.id).select("-password"); // exclude password
   res.json(user);
 });
+
+
+
+
+
+
+
+
+
+
+
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4YzdhYzRkNDc3ODhmNTVlYzU0NWJiZSIsImVtYWlsIjoiYWtjZmdhc3l1ZDJzamtkIiwiaWF0IjoxNzU3OTE2MjgyLCJleHAiOjE3NTc5MTk4ODJ9.CGT9EeWLPT2eHow49B7jULI5F4frlvrnpHjlyBg8Swo
